@@ -1,0 +1,15 @@
+version: '3.7'
+services:
+  multistreaming:
+    image: powernic/web-multistreaming
+    ports:
+      - 80:80
+    restart: always
+    environment:
+      - TYPE=file
+      - CONFIG=https://raw.githubusercontent.com/powernic/web-multistreaming/master/example-config.json
+      - MESSENGER_TRANSPORT_DSN=redis://redis:6379/messages
+  redis:
+    image: redis:latest
+    restart: always
+    container_name: redis

@@ -1,5 +1,7 @@
 # RTSP Multi-Streamer for WEB (JPG & OGG)
 
+[![GitHub CI status badge](https://github.com/powernic/web-multistreaming/actions/workflows/ci.yml/badge.svg)](https://github.com/powernic/web-multistreaming/actions/workflows/ci.yml)
+
 The goal of this project is to create a Docker-deployed service
 that will allow you to easily broadcast live video from IP cameras to web pages.
 This stream rebroadcaster is designed to be used by many sources/users.

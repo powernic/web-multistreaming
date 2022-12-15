@@ -13,9 +13,6 @@ services:
     environment:
       - TYPE=file
       - CONFIG=/app/config.json
-      - API_USERNAME=${API_USERNAME}
-      - API_PASSWORD=${API_PASSWORD}
-      - FFSERVER_PORT=${FFSERVER_PORT}
       - MESSENGER_TRANSPORT_DSN=${MESSENGER_TRANSPORT_DSN}
   redis:
     image: redis:latest

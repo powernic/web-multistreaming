@@ -1,0 +1,10 @@
+name: multistreaming
+services:
+  camera:
+    build:
+      context: .
+      target: dev
+    volumes:
+      - ./src:/app/src
+      - ./worker.php:/app/worker.php
+      - ./vendor:/opt/cache/vendor/

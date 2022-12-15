@@ -3,13 +3,21 @@ services:
   camera:
     build:
       context: .
+      target: prod
+    ports:
+      - 80:80
     container_name: camera
     restart: unless-stopped
+    volumes:
+      - ./example-config.json:/app/config.json
     environment:
-      - CAMERA_USERNAME=${CAMERA_USERNAME}
-      - CAMERA_PASSWORD=${CAMERA_PASSWORD}
+      - TYPE=file
+      - CONFIG=/app/config.json
+      - API_USERNAME=${API_USERNAME}
+      - API_PASSWORD=${API_PASSWORD}
       - FFSERVER_PORT=${FFSERVER_PORT}
       - MESSENGER_TRANSPORT_DSN=${MESSENGER_TRANSPORT_DSN}
-    volumes:
-      - ./vendor:/opt/cache/vendor/
-    entrypoint: /app/entrypoint.sh
+  redis:
+    image: redis:latest
+    restart: always
+    container_name: redis

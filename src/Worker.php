@@ -4,6 +4,7 @@ namespace Camera;
 
 use Camera\Message\JsonMessageSerializer;
 use Camera\Message\UpdateStreamConfig;
+use Camera\Repository\StreamRepositoryInterface;
 use Camera\Service\ConfigService;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\Bridge\Redis\Transport\Connection;
@@ -19,16 +20,21 @@ final class Worker
 {
 
     private string $ffserverDSN;
+
     /**
+     * @param Logger $logger
      * @param ConfigService $configService
-     * @param Process[] $streamProcesses
-     * @param ?Process $ffServerProcess
+     * @param int $ffServerPort
+     * @param StreamRepositoryInterface $streamRepository
      * @param string $ffServerHost
+     * @param array $streamProcesses
+     * @param ?Process $ffServerProcess
      */
     public function __construct(
         private Logger $logger,
         private ConfigService $configService,
         private int $ffServerPort,
+        private StreamRepositoryInterface $streamRepository,
         private string $ffServerHost = 'http://127.0.0.1',
         private array $streamProcesses = [],
         private ?Process $ffServerProcess = null)
@@ -68,7 +74,7 @@ final class Worker
     private function initFF(): void
     {
         $this->logger->log("Starting process.");
-        $streams = $this->configService->getStreams();
+        $streams = $this->streamRepository->all();
         $this->startFFServer($streams);
         $this->runFFStreams($streams);
     }

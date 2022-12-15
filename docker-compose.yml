@@ -1,0 +1,12 @@
+name: multistreaming
+services:
+  camera:
+    build:
+      context: .
+    container_name: camera
+    restart: unless-stopped
+    environment:
+      - CAMERA_USERNAME=${CAMERA_USERNAME}
+      - CAMERA_PASSWORD=${CAMERA_PASSWORD}
+      - FFSERVER_PORT=${FFSERVER_PORT}
+      - MESSENGER_TRANSPORT_DSN=${MESSENGER_TRANSPORT_DSN}

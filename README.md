@@ -13,7 +13,7 @@ The service was developed as part of another [free parking monitoring project]( 
 version: '3.7' 
 services:
   multistreaming:
-    image: powernic/web-multistreaming
+    image: powernic/web-multistreaming:latest
     ports:
       - 80:80 
     restart: always

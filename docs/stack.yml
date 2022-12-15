@@ -1,7 +1,7 @@
 version: '3.7'
 services:
   multistreaming:
-    image: powernic/web-multistreaming
+    image: powernic/web-multistreaming:latest
     ports:
       - 80:80
     restart: always

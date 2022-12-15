@@ -7,7 +7,6 @@ use Camera\Service\ConfigService;
 use Camera\Worker;
 
 require_once __DIR__ . '/vendor/autoload.php';
-
 $logger = new Logger();
 $ffServerPort = $_ENV['FFSERVER_PORT'] ? (int)$_ENV['FFSERVER_PORT'] : 8090;
 try {

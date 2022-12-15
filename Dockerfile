@@ -30,7 +30,13 @@ RUN set -eux; \
 	\
 	apk del .build-deps
 
-RUN apk add --update supervisor && rm  -rf /tmp/* /var/cache/apk/*
+RUN apk add --update \
+    supervisor \
+    rsync \
+    && rm  -rf /tmp/* /var/cache/apk/*
+
+RUN apk add rsync
+RUN mkdir /opt/cache/vendor -p
 
 RUN rm /usr/local/bin/php-cgi  \
     && rm /usr/local/bin/phpdbg \
@@ -40,14 +46,16 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 COPY --from=jrottenberg/ffmpeg:3-scratch / /
-COPY ./ /app
 WORKDIR /app
+COPY composer.json composer.lock ./
 RUN set -eux; \
     if [ -f composer.json ]; then \
 		composer install --prefer-dist --no-dev --no-autoloader --no-scripts --no-progress; \
 		composer clear-cache; \
         composer dump-autoload --classmap-authoritative --no-dev; \
     fi
+
+COPY ./ /app
 
 HEALTHCHECK CMD netstat -an | grep $FFSERVER_PORT > /dev/null; if [ 0 != $? ]; then exit 1; fi;
 ENTRYPOINT ["php", "/app/worker.php"]

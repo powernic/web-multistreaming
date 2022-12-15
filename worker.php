@@ -18,6 +18,9 @@ try {
         case 'file':
             $streamRepository = new FileRepository($_ENV['CONFIG']);
             break;
+        case 'remote_file':
+            $streamRepository = new FileRepository($_ENV['CONFIG'], true);
+            break;
         case 'rest':
             $streamRepository = new RestApiRepository();
             break;

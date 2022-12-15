@@ -6,7 +6,7 @@ services:
       - 80:80
     restart: always
     environment:
-      - TYPE=file
+      - TYPE=remote_file
       - CONFIG=https://raw.githubusercontent.com/powernic/web-multistreaming/master/example-config.json
       - MESSENGER_TRANSPORT_DSN=redis://redis:6379/messages
   redis:

@@ -3,8 +3,7 @@
 The goal of this project is to create a Docker-deployed service
 that will allow you to easily broadcast live video from IP cameras to web pages.
 This stream rebroadcaster is designed to be used by many sources/users.
-The service was developed as part of another free
-parking monitoring project https://github.com/powernic/parking-lot-occupancy
+The service was developed as part of another [free parking monitoring project]( https://github.com/powernic/parking-lot-occupancy)
 
 ## Usage
 

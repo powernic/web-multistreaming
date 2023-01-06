@@ -31,11 +31,11 @@ final class Worker
      * @param ?Process $ffServerProcess
      */
     public function __construct(
-        private Logger $logger,
-        private ConfigService $configService,
-        private int $ffServerPort,
-        private StreamRepositoryInterface $streamRepository,
-        private string $ffServerHost = 'http://127.0.0.1',
+        private readonly Logger $logger,
+        private readonly ConfigService $configService,
+        private readonly int $ffServerPort,
+        private readonly StreamRepositoryInterface $streamRepository,
+        private readonly string $ffServerHost = 'http://127.0.0.1',
         private array $streamProcesses = [],
         private ?Process $ffServerProcess = null)
     {
@@ -124,7 +124,7 @@ final class Worker
     public function restartFF(): void
     {
         $this->logger->log('Starting update stream config');
-        $streams = $this->configService->getStreams();
+        $streams = $this->streamRepository->all();
         $this->restartFFServer($streams);
         $this->restartFFStreams($streams);
         $this->logger->log('Finished update stream config');

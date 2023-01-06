@@ -8,3 +8,5 @@ services:
       - ./src:/app/src
       - ./worker.php:/app/worker.php
       - ./vendor:/opt/cache/vendor/
+      - ./composer.json:/app/composer.json
+      - ./composer.lock:/app/composer.lock

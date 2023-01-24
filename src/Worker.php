@@ -5,7 +5,6 @@ namespace Camera;
 use Camera\Message\JsonMessageSerializer;
 use Camera\Message\UpdateStreamConfig;
 use Camera\Repository\StreamRepositoryInterface;
-use Camera\Service\ConfigService;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\Bridge\Redis\Transport\Connection;
 use Symfony\Component\Messenger\Bridge\Redis\Transport\RedisReceiver;
@@ -14,32 +13,21 @@ use Symfony\Component\Messenger\Handler\HandlersLocator;
 use Symfony\Component\Messenger\MessageBus;
 use Symfony\Component\Messenger\Middleware\HandleMessageMiddleware;
 use Symfony\Component\Messenger\Worker as MessageWorker;
-use Symfony\Component\Process\Process;
 
 final class Worker
 {
 
-    private string $ffserverDSN;
+    private StreamProcessCollection $streamProcesses;
 
     /**
      * @param Logger $logger
-     * @param ConfigService $configService
-     * @param int $ffServerPort
      * @param StreamRepositoryInterface $streamRepository
-     * @param string $ffServerHost
-     * @param array $streamProcesses
-     * @param ?Process $ffServerProcess
      */
     public function __construct(
         private readonly Logger $logger,
-        private readonly ConfigService $configService,
-        private readonly int $ffServerPort,
-        private readonly StreamRepositoryInterface $streamRepository,
-        private readonly string $ffServerHost = 'http://127.0.0.1',
-        private array $streamProcesses = [],
-        private ?Process $ffServerProcess = null)
+        private readonly StreamRepositoryInterface $streamRepository)
     {
-        $this->ffserverDSN = sprintf('%s:%d', $this->ffServerHost, $this->ffServerPort);
+        $this->streamProcesses = new StreamProcessCollection();
     }
 
     public function sigHandler(int $signo): void
@@ -47,12 +35,11 @@ final class Worker
         switch ($signo) {
             case SIGTERM:
                 $this->logger->log("Stopping process.");
-                $this->stopFFStreams();
-                $this->stopFFServer();
+                $this->streamProcesses->stopAll();
                 $this->logger->log("Process stopped.");
                 exit;
             case SIGHUP:
-                $this->restartFF();
+                $this->updateFF();
                 break;
         }
     }
@@ -75,8 +62,7 @@ final class Worker
     {
         $this->logger->log("Starting process.");
         $streams = $this->streamRepository->all();
-        $this->startFFServer($streams);
-        $this->runFFStreams($streams);
+        $this->runVideoStreams($streams);
     }
 
     private function runWorker(): void
@@ -88,11 +74,21 @@ final class Worker
         $worker->run();
     }
 
-    private function createEventDispatcher(): EventDispatcher{
+    private function createEventDispatcher(): EventDispatcher
+    {
         $eventDispatcher = new EventDispatcher();
         $eventDispatcher->addListener(WorkerRunningEvent::class, function () {
-            foreach ($this->streamProcesses as $streamProcess) {
-                $streamProcess->isRunning();
+            foreach ($this->streamProcesses->getAll() as $streamProcess) {
+                $running = $streamProcess->isRunning();
+                if(!$running) {
+                    $this->logger->log("Stream {$streamProcess->getId()} is not running. Restarting.");
+                    if($streamProcess->canRetry()) {
+                        $streamProcess->retry();
+                    } else {
+                        $this->logger->log("Stream {$streamProcess->getId()} has reached max retries. Removing.");
+                        $this->streamProcesses->stop($streamProcess->getId());
+                    }
+                }
             }
         });
         return $eventDispatcher;
@@ -112,8 +108,8 @@ final class Worker
             new HandleMessageMiddleware(
                 new HandlersLocator([
                     UpdateStreamConfig::class => [
-                        function() {
-                            $this->restartFF();
+                        function () {
+                            $this->updateFF();
                         }
                     ]
                 ]),
@@ -121,12 +117,11 @@ final class Worker
         ]);
     }
 
-    public function restartFF(): void
+    public function updateFF(): void
     {
         $this->logger->log('Starting update stream config');
         $streams = $this->streamRepository->all();
-        $this->restartFFServer($streams);
-        $this->restartFFStreams($streams);
+        $this->updateFFStreams($streams);
         $this->logger->log('Finished update stream config');
     }
 
@@ -134,68 +129,67 @@ final class Worker
      * @param Stream[] $streams
      * @return void
      */
-    private function restartFFStreams(array $streams): void
+    private function updateFFStreams(array $streams): void
     {
-        $this->stopFFStreams();
-        $this->runFFStreams($streams);
+        $unusedIds = $this->findUnusedStreamIds($streams);
+        if (!empty($unusedIds)) {
+            $this->stopStream($unusedIds);
+        }
+        $newStreams = $this->findNewStreams($streams);
+        $this->runVideoStreams($streams);
+    }
+
+    /**
+     * @param Stream[] $streams
+     * @return Stream[]
+     */
+    private function findNewStreams(array $streams): array
+    {
+        return array_filter($streams, function (Stream $stream) {
+            return !$this->streamProcesses->isRunning($stream->getId());
+        });
     }
 
     /**
      * @param Stream[] $streams
      * @return void
      */
-    private function runFFStreams(array $streams): void
+    private function runVideoStreams(array $streams): void
     {
         foreach ($streams as $stream) {
-            $feedUrl = $this->ffserverDSN . '/' . $stream->getName();
-            $ffmpegProcess = new Process(
-                [
-                    "ffmpeg",
-                    "-hide_banner",
-                    "-loglevel",
-                    "warning",
-                    "-rtsp_transport",
-                    "tcp",
-                    "-i",
-                    $stream->getUrl(),
-                    $feedUrl
-                ]
-            );
+            $streamProcess = new StreamProcess($stream);
             $this->logger->log('Starting stream: ' . $stream->getId());
-            $this->streamProcesses[] = $ffmpegProcess;
-
-            $ffmpegProcess->setPty(true);
-            $ffmpegProcess->start(function ($type, $buffer) use ($stream) {
-                $this->logger->log(['id' => $stream->getId(), 'message' => $buffer]);
+            $this->streamProcesses->add($streamProcess);
+            $streamProcess->setPty(true);
+            $streamProcess->start(function ($type, $buffer) use ($stream) {
+                $this->logger->log(['id' => $stream->getId(), 'type' => $type, 'message' => $buffer]);
             });
+            $this->logger->log('Started stream: ' . $stream->getId());
         }
     }
 
-    private function stopFFStreams(): void
+    /**
+     * @param Stream[] $streams
+     * @return string[]
+     */
+    private function findUnusedStreamIds(array $streams): array
     {
-        foreach ($this->streamProcesses as $process) {
-            $process->stop();
-        }
-        $this->streamProcesses = [];
+        $streamIds = array_map(function (Stream $stream) {
+            return $stream->getId();
+        }, $streams);
+        return array_diff($this->streamProcesses->getRunningStreamIds(), $streamIds);
     }
 
-
-    private function restartFFServer(array $streams): void
+    /**
+     * @param string[] $streams
+     * @return void
+     */
+    private function stopStream(array $streamIds): void
     {
-        $this->stopFFServer();
-        $this->startFFServer($streams);
+        $this->streamProcesses->stopByIds($streamIds, function (string $id) {
+            $this->logger->log('Stopping stream: ' . $id);
+        });
     }
 
-    private function startFFServer(array $streams): void
-    {
-        $this->configService->createFFServerConfig($streams);
-        $this->ffServerProcess = new Process(["ffserver", "-hide_banner", "-loglevel", "warning"]);
-        $this->ffServerProcess->start();
-    }
-
-    private function stopFFServer(): void
-    {
-        $this->ffServerProcess->stop();
-    }
 
 }

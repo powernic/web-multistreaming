@@ -4,6 +4,9 @@ namespace Camera;
 
 final class Stream implements \JsonSerializable
 {
+
+    private bool $new = false;
+
     public function __construct(private string $id, private string $url)
     {
     }
@@ -20,9 +23,8 @@ final class Stream implements \JsonSerializable
 
     public function getName(): string
     {
-        return $this->getId() . '-feed.ffm';
+        return $this->getId() . '-' . ($this->new ? "new-" : "") . 'feed.ffm';
     }
-
 
     public function jsonSerialize(): array
     {

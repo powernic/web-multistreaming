@@ -4,17 +4,30 @@ services:
     build:
       context: .
       target: prod
-    ports:
-      - 80:80
-    container_name: camera
     restart: unless-stopped
+    depends_on:
+      - stream-server
     volumes:
       - ./example-config.json:/app/config.json
+      - stream:/app/resources
     environment:
       - TYPE=file
       - CONFIG=/app/config.json
       - MESSENGER_TRANSPORT_DSN=${MESSENGER_TRANSPORT_DSN}
+      - STREAM_HOST=stream-server
+      - SNAPSHOT_DIR=/app/resources
+  stream-server:
+    image: ossrs/srs:6
+    hostname: stream-server
+    volumes:
+      - ./docker/srs/rtsp.conf:/usr/local/srs/conf/rtsp.conf
+      - stream:/usr/local/srs/objs/nginx/html/snapshot/
+    ports:
+      - 554:554
+      - 8080:8080
+    entrypoint: [ "./objs/srs","-c","conf/rtsp.conf" ]
   redis:
     image: redis:latest
     restart: always
-    container_name: redis
+volumes:
+  stream:

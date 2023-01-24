@@ -71,3 +71,7 @@ COPY ./dev-entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
 
 ENTRYPOINT ["entrypoint"]
+
+FROM ossrs/srs:6 as stream-server
+COPY ./docker/srs/rtsp.conf /usr/local/srs/conf/rtsp.conf
+ENTRYPOINT ["./objs/srs", "-c", "conf/rtsp.conf"]

@@ -29,7 +29,7 @@ class StreamProcess
     private function getSnapshotCommand(Stream $stream):string{
         return
             'ffmpeg -y -loglevel error -rtsp_transport tcp -i ' . $stream->getUrl(
-            ) . ' -update 1 -vf "select=not(mod(n\,15))",scale="640:360" -vsync 0 ' . $this->snapshotDir . '/' . $stream->getId(
+            ) . ' -update 1 -vf fps=15,scale="640:360" -qscale:v 1 -vsync 0 ' . $this->snapshotDir . '/' . $stream->getId(
             ) . '.jpg';
     }
 

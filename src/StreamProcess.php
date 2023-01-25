@@ -26,15 +26,17 @@ class StreamProcess
         $this->videoProcess = new Process($this->getVideoCommand($stream));
     }
 
-    private function getSnapshotCommand(Stream $stream):string{
+    private function getSnapshotCommand(Stream $stream): string
+    {
         return
             'ffmpeg -y -loglevel error -rtsp_transport tcp -i ' . $stream->getUrl(
             ) . ' -update 1 -vf fps=15,scale="640:360" -qscale:v 1 -vsync 0 ' . $this->snapshotDir . '/' . $stream->getId(
             ) . '.jpg';
     }
 
-    private function getVideoCommand(Stream $stream): array{
-       return [
+    private function getVideoCommand(Stream $stream): array
+    {
+        return [
             "ffmpeg",
             "-y",
             "-loglevel",
@@ -84,6 +86,11 @@ class StreamProcess
         $this->videoProcess->start($callback, $env);
     }
 
+    /**
+     * @param float $timeout
+     * @param int|null $signal
+     * @return array<int,int|null>
+     */
     public function stop(float $timeout = 10, int $signal = null): array
     {
         return [

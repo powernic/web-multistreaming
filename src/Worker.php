@@ -39,7 +39,7 @@ final class Worker
                 $this->logger->log("Process stopped.");
                 exit;
             case SIGHUP:
-                $this->updateFF();
+                $this->pullAndUpdateStreams();
                 break;
         }
     }
@@ -47,7 +47,7 @@ final class Worker
     public function run(): void
     {
         $this->bindSignals();
-        $this->initFF();
+        $this->initStreams();
         $this->runWorker();
     }
 
@@ -58,7 +58,7 @@ final class Worker
         pcntl_signal(SIGHUP, [$this, 'sigHandler']);
     }
 
-    private function initFF(): void
+    private function initStreams(): void
     {
         $this->logger->log("Starting process.");
         $streams = $this->streamRepository->all();
@@ -109,7 +109,7 @@ final class Worker
                 new HandlersLocator([
                     UpdateStreamConfig::class => [
                         function () {
-                            $this->updateFF();
+                            $this->pullAndUpdateStreams();
                         }
                     ]
                 ]),
@@ -117,11 +117,11 @@ final class Worker
         ]);
     }
 
-    public function updateFF(): void
+    public function pullAndUpdateStreams(): void
     {
         $this->logger->log('Starting update stream config');
         $streams = $this->streamRepository->all();
-        $this->updateFFStreams($streams);
+        $this->updateStreams($streams);
         $this->logger->log('Finished update stream config');
     }
 
@@ -129,14 +129,14 @@ final class Worker
      * @param Stream[] $streams
      * @return void
      */
-    private function updateFFStreams(array $streams): void
+    private function updateStreams(array $streams): void
     {
         $unusedIds = $this->findUnusedStreamIds($streams);
         if (!empty($unusedIds)) {
             $this->stopStream($unusedIds);
         }
         $newStreams = $this->findNewStreams($streams);
-        $this->runVideoStreams($streams);
+        $this->runVideoStreams($newStreams);
     }
 
     /**
@@ -158,13 +158,12 @@ final class Worker
     {
         foreach ($streams as $stream) {
             $streamProcess = new StreamProcess($stream);
-            $this->logger->log('Starting stream: ' . $stream->getId());
             $this->streamProcesses->add($streamProcess);
             $streamProcess->setPty(true);
             $streamProcess->start(function ($type, $buffer) use ($stream) {
                 $this->logger->log(['id' => $stream->getId(), 'type' => $type, 'message' => $buffer]);
             });
-            $this->logger->log('Started stream: ' . $stream->getId());
+            $this->logger->log('Stream started: ' . $stream->getId());
         }
     }
 
@@ -181,13 +180,13 @@ final class Worker
     }
 
     /**
-     * @param string[] $streams
+     * @param string[] $streamIds
      * @return void
      */
     private function stopStream(array $streamIds): void
     {
         $this->streamProcesses->stopByIds($streamIds, function (string $id) {
-            $this->logger->log('Stopping stream: ' . $id);
+            $this->logger->log('Stream stopped: ' . $id);
         });
     }
 

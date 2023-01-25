@@ -4,6 +4,9 @@ namespace Camera;
 
 class StreamProcessCollection
 {
+    /**
+     * @var StreamProcess[]
+     */
     private array $processes = [];
 
     public function add(StreamProcess $streamProcess): void
@@ -29,9 +32,8 @@ class StreamProcessCollection
     }
     /**
      * @param string[] $ids
-     * @return array
      */
-    public function stopByIds(array $ids, \Closure $callback): array
+    public function stopByIds(array $ids, \Closure $callback): void
     {
         foreach ($ids as $id) {
             if (!isset($this->processes[$id])) {

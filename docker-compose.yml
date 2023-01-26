@@ -23,8 +23,6 @@ services:
       - ./docker/srs/rtsp.conf:/usr/local/srs/conf/rtsp.conf
       - stream:/usr/local/srs/objs/nginx/html/snapshot/
     ports:
-      - 1935:1935
-      - 1985:1985
       - 554:554
       - 8080:8080
     entrypoint: [ "./objs/srs","-c","conf/rtsp.conf" ]

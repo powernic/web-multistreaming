@@ -10,9 +10,7 @@ class StreamProcess
     private Stream $stream;
     private Process $snapshotProcess;
     private Process $videoProcess;
-
-    private int $retryLimit = 3;
-    private int $retryCount = 0;
+    private int $maxRetryDelay = 10;
     private string $streamHost;
     private $snapshotDir;
 
@@ -107,17 +105,9 @@ class StreamProcess
 
     public function retry(): void
     {
-        $this->retryCount++;
-        if (!$this->canRetry()) {
-            return;
-        }
         $this->stop();
         $this->restart();
-    }
-
-    public function canRetry(): bool
-    {
-        return $this->retryCount < $this->retryLimit;
+        sleep($this->maxRetryDelay);
     }
 
 

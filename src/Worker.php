@@ -80,13 +80,11 @@ final class Worker
         $eventDispatcher->addListener(WorkerRunningEvent::class, function () {
             foreach ($this->streamProcesses->getAll() as $streamProcess) {
                 $running = $streamProcess->isRunning();
-                if(!$running) {
+                if (!$running) {
                     $this->logger->log("Stream {$streamProcess->getId()} is not running. Restarting.");
-                    if($streamProcess->canRetry()) {
-                        $streamProcess->retry();
-                    } else {
-                        $this->logger->log("Stream {$streamProcess->getId()} has reached max retries. Removing.");
-                        $this->streamProcesses->stop($streamProcess->getId());
+                    $streamProcess->retry();
+                    if($streamProcess->isRunning()) {
+                        $this->logger->log("Restored running stream {$streamProcess->getId()}");
                     }
                 }
             }

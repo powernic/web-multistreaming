@@ -4,6 +4,7 @@ declare(ticks=1);
 
 use Camera\Logger;
 use Camera\Repository\FileRepository;
+use Camera\Repository\PersistenceRepositoryDecorator;
 use Camera\Repository\RestApiRepository;
 use Camera\Worker;
 
@@ -26,7 +27,7 @@ try {
     }
     $worker = new Worker(
         logger: $logger,
-        streamRepository: $streamRepository
+        streamRepository: new PersistenceRepositoryDecorator($streamRepository)
     );
     $worker->run();
 } catch (\Exception $e) {

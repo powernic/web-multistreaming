@@ -8,8 +8,7 @@ class StreamProcess
 {
 
     private Stream $stream;
-    private Process $snapshotProcess;
-    private Process $videoProcess;
+    private Process $parallelProcess;
     private int $maxRetryDelay = 10;
     private string $streamHost;
     private $snapshotDir;
@@ -20,19 +19,16 @@ class StreamProcess
         $this->streamHost = $_ENV['STREAM_HOST'] ?? '';
         $this->stream = $stream;
 
-        $this->snapshotProcess = Process::fromShellCommandline($this->getSnapshotCommand($stream));
-        $this->videoProcess = new Process($this->getVideoCommand($stream));
+        $this->parallelProcess = new Process(
+            array_merge(
+                $this->getInputCommand($stream),
+                $this->getSnapshotCommand($stream),
+                $this->getVideoCommand($stream)
+            )
+        );
     }
 
-    private function getSnapshotCommand(Stream $stream): string
-    {
-        return
-            'ffmpeg -y -loglevel error -rtsp_transport tcp -i ' . $stream->getUrl(
-            ) . ' -update 1 -vf fps=15,scale="640:360" -qscale:v 1 -vsync 0 ' . $this->snapshotDir . '/' . $stream->getId(
-            ) . '.jpg';
-    }
-
-    private function getVideoCommand(Stream $stream): array
+    private function getInputCommand(Stream $stream): array
     {
         return [
             "ffmpeg",
@@ -43,6 +39,27 @@ class StreamProcess
             "tcp",
             "-i",
             $stream->getUrl(),
+        ];
+    }
+
+    private function getSnapshotCommand(Stream $stream): array
+    {
+        return [
+            "-update",
+            "1",
+            "-vf",
+            "fps=15,scale=640:360",
+            "-qscale:v",
+            "1",
+            "-vsync",
+            "0",
+            $this->snapshotDir . '/' . $stream->getId() . '.jpg'
+        ];
+    }
+
+    private function getVideoCommand(Stream $stream): array
+    {
+        return [
             "-c",
             "copy",
             "-f",
@@ -56,57 +73,46 @@ class StreamProcess
         return $this->stream->getId();
     }
 
-    public function getCommandLines(): array
-    {
-        return [$this->snapshotProcess->getCommandLine(), $this->videoProcess->getCommandLine()];
-    }
-
     public function isRunning(): bool
     {
-        return $this->snapshotProcess->isRunning() && $this->videoProcess->isRunning();
+        return $this->parallelProcess->isRunning();
     }
 
     public function getOutput(): string
     {
-        return $this->snapshotProcess->getOutput() . $this->videoProcess->getOutput();
+        return $this->parallelProcess->getOutput();
     }
 
     public function setPty(bool $bool): self
     {
-        $this->snapshotProcess->setPty($bool);
-        $this->videoProcess->setPty($bool);
+        $this->parallelProcess->setPty($bool);
         return $this;
     }
 
     public function start(callable $callback = null, array $env = []): void
     {
-        $this->snapshotProcess->start($callback, $env);
-        $this->videoProcess->start($callback, $env);
+        $this->parallelProcess->start($callback, $env);
     }
 
     /**
      * @param float $timeout
      * @param int|null $signal
-     * @return array<int,int|null>
+     * @return int|null
      */
-    public function stop(float $timeout = 10, int $signal = null): array
+    public function stop(float $timeout = 10, int $signal = null): ?int
     {
-        return [
-            $this->snapshotProcess->stop($timeout, $signal),
-            $this->videoProcess->stop($timeout, $signal)
-        ];
+        return $this->parallelProcess->stop($timeout, $signal);
     }
 
-    public function restart(): void
+    public function restart(callable $callback = null): void
     {
-        $this->snapshotProcess = $this->snapshotProcess->restart();
-        $this->videoProcess = $this->videoProcess->restart();
+        $this->parallelProcess = $this->parallelProcess->restart($callback);
     }
 
-    public function retry(): void
+    public function retry(callable $callback = null): void
     {
         $this->stop();
-        $this->restart();
+        $this->restart($callback);
         sleep($this->maxRetryDelay);
     }
 

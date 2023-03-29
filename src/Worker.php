@@ -82,7 +82,9 @@ final class Worker
                 $running = $streamProcess->isRunning();
                 if (!$running) {
                     $this->logger->log("Stream {$streamProcess->getId()} is not running. Restarting.");
-                    $streamProcess->retry();
+                    $streamProcess->retry(function ($type, $buffer) use ($streamProcess) {
+                        $this->logger->log(['id' => $streamProcess->getId(), 'type' => $type, 'message' => $buffer]);
+                    });
                     if($streamProcess->isRunning()) {
                         $this->logger->log("Restored running stream {$streamProcess->getId()}");
                     }

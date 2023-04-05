@@ -2,9 +2,12 @@
 
 namespace Camera;
 
+use Camera\Message\Handler\MakeSnapshotHandler;
 use Camera\Message\JsonMessageSerializer;
+use Camera\Message\MakeSnapshot;
 use Camera\Message\UpdateStreamConfig;
 use Camera\Repository\StreamRepositoryInterface;
+use Camera\Service\ParkingService;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Messenger\Bridge\Redis\Transport\Connection;
 use Symfony\Component\Messenger\Bridge\Redis\Transport\RedisReceiver;
@@ -25,6 +28,7 @@ final class Worker
      */
     public function __construct(
         private readonly Logger $logger,
+        private readonly ParkingService $parkingService,
         private readonly StreamRepositoryInterface $streamRepository)
     {
         $this->streamProcesses = new StreamProcessCollection();
@@ -85,7 +89,7 @@ final class Worker
                     $streamProcess->retry(function ($type, $buffer) use ($streamProcess) {
                         $this->logger->log(['id' => $streamProcess->getId(), 'type' => $type, 'message' => $buffer]);
                     });
-                    if($streamProcess->isRunning()) {
+                    if ($streamProcess->isRunning()) {
                         $this->logger->log("Restored running stream {$streamProcess->getId()}");
                     }
                 }
@@ -104,6 +108,7 @@ final class Worker
 
     private function createMessageBus(): MessageBus
     {
+        $makeSnapshotHandler = new MakeSnapshotHandler($this->logger, $this->parkingService, $this->streamProcesses);
         return new MessageBus([
             new HandleMessageMiddleware(
                 new HandlersLocator([
@@ -111,7 +116,10 @@ final class Worker
                         function () {
                             $this->pullAndUpdateStreams();
                         }
-                    ]
+                    ],
+                    MakeSnapshot::class => [
+                        $makeSnapshotHandler
+                    ],
                 ]),
             )
         ]);

@@ -6,11 +6,14 @@ use Camera\Logger;
 use Camera\Repository\FileRepository;
 use Camera\Repository\PersistenceRepositoryDecorator;
 use Camera\Repository\RestApiRepository;
+use Camera\Service\ParkingService;
 use Camera\Worker;
 
 require_once __DIR__ . '/vendor/autoload.php';
 $logger = new Logger();
 $type = $_ENV['TYPE'] ?: 'file';
+$agentDSN = $_ENV['AGENT_DSN'] ?: 'http://parking.powernic.me/api/';
+$agentToken =  $_ENV['API_KEY'] ?: '';
 try {
     switch ($type) {
         case 'file':
@@ -20,13 +23,14 @@ try {
             $streamRepository = new FileRepository($_ENV['CONFIG'], true);
             break;
         case 'rest':
-            $streamRepository = new RestApiRepository();
+            $streamRepository = new RestApiRepository($agentDSN);
             break;
         default:
             throw new \Exception('Invalid ' . $_ENV['TYPE'] . ' type');
     }
     $worker = new Worker(
         logger: $logger,
+        parkingService: new ParkingService(),
         streamRepository: new PersistenceRepositoryDecorator($streamRepository)
     );
     $worker->run();

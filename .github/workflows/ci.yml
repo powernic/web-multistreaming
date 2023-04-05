@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - master
@@ -14,6 +16,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            powernic/web-multistreaming
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
@@ -38,7 +51,8 @@ jobs:
           context: .
           push: true
           target: stream-server
-          tags: powernic/stream-server:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
       - name: Docker Hub Description
         uses: peter-evans/dockerhub-description@v3
         with:

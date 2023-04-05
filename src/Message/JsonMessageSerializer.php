@@ -30,6 +30,9 @@ class JsonMessageSerializer implements SerializerInterface
             case 'config.stream.update':
                 $envelope = $this->createCommandEnvelope($data);
                 break;
+            case 'snapshot.make':
+                $envelope = $this->createMakeSnapshotEnvelope($data);
+                break;
             default:
                 throw new MessageDecodingFailedException(sprintf('Invalid type "%s"', $headers['type']));
         }
@@ -38,6 +41,13 @@ class JsonMessageSerializer implements SerializerInterface
             $stamps = unserialize($headers['stamps']);
         }
         return $envelope->with(... $stamps);
+    }
+
+    private function createMakeSnapshotEnvelope($data): Envelope
+    {
+        $message = new MakeSnapshot($data['id']);
+        $envelope = new Envelope($message);
+        return $envelope->with(new BusNameStamp('command.bus'));
     }
 
     private function createCommandEnvelope($data): Envelope

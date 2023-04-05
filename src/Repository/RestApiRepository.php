@@ -12,10 +12,10 @@ class RestApiRepository extends StreamRepository
     private ?string $refreshToken = null;
     private Client $client;
 
-    public function __construct()
+    public function __construct(string $dsn)
     {
         $this->client = new Client([
-            'base_uri' => 'http://http/api/',
+            'base_uri' => $dsn,
         ]);
     }
 

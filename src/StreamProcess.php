@@ -6,29 +6,25 @@ use Symfony\Component\Process\Process;
 
 class StreamProcess
 {
-
-    private Stream $stream;
     private Process $parallelProcess;
     private int $maxRetryDelay = 10;
     private string $streamHost;
     private $snapshotDir;
 
-    public function __construct(Stream $stream)
+    public function __construct(private Stream $stream)
     {
         $this->snapshotDir = $_ENV['SNAPSHOT_DIR'] ?? '/tmp/resources/';
         $this->streamHost = $_ENV['STREAM_HOST'] ?? '';
-        $this->stream = $stream;
-
         $this->parallelProcess = new Process(
             array_merge(
-                $this->getInputCommand($stream),
-                $this->getSnapshotCommand($stream),
-                $this->getVideoCommand($stream)
+                $this->getInputCommand(),
+                $this->getSnapshotCommand(),
+                $this->getVideoCommand()
             )
         );
     }
 
-    private function getInputCommand(Stream $stream): array
+    private function getInputCommand(): array
     {
         return [
             "ffmpeg",
@@ -38,11 +34,11 @@ class StreamProcess
             "-rtsp_transport",
             "tcp",
             "-i",
-            $stream->getUrl(),
+            $this->stream->getUrl(),
         ];
     }
 
-    private function getSnapshotCommand(Stream $stream): array
+    private function getSnapshotCommand(): array
     {
         return [
             "-update",
@@ -53,18 +49,23 @@ class StreamProcess
             "1",
             "-vsync",
             "0",
-            $this->snapshotDir . '/' . $stream->getId() . '.jpg'
+            $this->getSnapshotPath()
         ];
     }
 
-    private function getVideoCommand(Stream $stream): array
+    public function getSnapshotPath(): string
+    {
+        return $this->snapshotDir . '/' . $this->stream->getId() . '.jpg';
+    }
+
+    private function getVideoCommand(): array
     {
         return [
             "-c",
             "copy",
             "-f",
             "flv",
-            "rtmp://{$this->streamHost}/live/{$stream->getId()}"
+            "rtmp://{$this->streamHost}/live/{$this->stream->getId()}"
         ];
     }
 

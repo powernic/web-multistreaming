@@ -3,19 +3,21 @@
 namespace Camera\Repository;
 
 use Camera\Stream;
+use GuzzleHttp\Client;
 
-class FileRepository extends StreamRepository
+class RemoteFileRepository extends StreamRepository
 {
-    public function __construct(private string $configFilePath = '/app/config.json')
+
+    private Client $client;
+
+    public function __construct(private string $configFilePath)
     {
+        $this->client = new Client();
     }
 
     public function all(): array
     {
-        if (!file_exists($this->configFilePath)) {
-            throw new \Exception('Stream File ' . $this->configFilePath . ' not found');
-        }
-        $streamBody = file_get_contents($this->configFilePath);
+        $streamBody = $this->client->get($this->configFilePath)->getBody()->getContents();
         if (!empty($streamBody)) {
             $streamConfig = json_decode($streamBody, true);
         } else {

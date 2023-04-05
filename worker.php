@@ -5,6 +5,7 @@ declare(ticks=1);
 use Camera\Logger;
 use Camera\Repository\FileRepository;
 use Camera\Repository\PersistenceRepositoryDecorator;
+use Camera\Repository\RemoteFileRepository;
 use Camera\Repository\RestApiRepository;
 use Camera\Service\ParkingService;
 use Camera\Worker;
@@ -20,7 +21,7 @@ try {
             $streamRepository = new FileRepository($_ENV['CONFIG']);
             break;
         case 'remote_file':
-            $streamRepository = new FileRepository($_ENV['CONFIG'], true);
+            $streamRepository = new RemoteFileRepository($_ENV['CONFIG']);
             break;
         case 'rest':
             $streamRepository = new RestApiRepository($agentDSN);

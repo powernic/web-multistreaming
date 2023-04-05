@@ -66,6 +66,7 @@ final class Worker
     {
         $this->logger->log("Starting process.");
         $streams = $this->streamRepository->all();
+        $this->logger->log("Stream loaded");
         $this->runVideoStreams($streams);
     }
 

@@ -66,7 +66,7 @@ jobs:
         with:
           context: .
           push: true
-          target: stream-server
+          target: prod
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

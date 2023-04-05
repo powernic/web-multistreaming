@@ -30,7 +30,7 @@ try {
     }
     $worker = new Worker(
         logger: $logger,
-        parkingService: new ParkingService(),
+        parkingService: new ParkingService($agentDSN, $agentToken),
         streamRepository: new PersistenceRepositoryDecorator($streamRepository)
     );
     $worker->run();

@@ -13,8 +13,8 @@ use Camera\Worker;
 require_once __DIR__ . '/vendor/autoload.php';
 $logger = new Logger();
 $type = $_ENV['TYPE'] ?: 'file';
-$agentDSN = $_ENV['AGENT_DSN'] ?: 'http://parking.powernic.me/api/';
-$agentToken =  $_ENV['API_KEY'] ?: '';
+$agentDSN = $_ENV['AGENT_DSN'] ?? 'http://parking.powernic.me/api/';
+$agentToken =  $_ENV['API_KEY'] ?? '';
 try {
     switch ($type) {
         case 'file':

@@ -84,8 +84,7 @@ final class Worker
         $eventDispatcher = new EventDispatcher();
         $eventDispatcher->addListener(WorkerRunningEvent::class, function () {
             foreach ($this->streamProcesses->getAll() as $streamProcess) {
-                $running = $streamProcess->isRunning($this->logger);
-                $this->logger->log("Checking stream {$streamProcess->getId()}");
+                $running = $streamProcess->isRunning();
                 if (!$running) {
                     $this->logger->log("Stream {$streamProcess->getId()} is not running. Restarting.");
                     $streamProcess->retry(function ($type, $buffer) use ($streamProcess) {
@@ -95,7 +94,6 @@ final class Worker
                         $this->logger->log("Restored running stream {$streamProcess->getId()}");
                     }
                 }
-                $this->logger->log("Stream {$streamProcess->getId()} is running");
             }
         });
         return $eventDispatcher;

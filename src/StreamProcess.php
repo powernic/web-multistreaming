@@ -78,9 +78,8 @@ class StreamProcess
         return $this->stream->getId();
     }
 
-    public function isRunning(Logger $logger = null): bool
+    public function isRunning(): bool
     {
-        $logger?->log('Stream updated at:'.$this->getUpdatedAtSnapshot()->format('Y-m-d H:i:s'));
         return $this->parallelProcess->isRunning() && $this->streamIsAlive();
     }
 

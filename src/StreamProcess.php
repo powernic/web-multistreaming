@@ -8,6 +8,10 @@ class StreamProcess
 {
     private Process $parallelProcess;
     private int $maxRetryDelay = 10;
+    private int $maxStreamDelayInSec = 10;
+
+    private \DateTimeImmutable $runAt;
+
     private string $streamHost;
     private $snapshotDir;
 
@@ -74,9 +78,10 @@ class StreamProcess
         return $this->stream->getId();
     }
 
-    public function isRunning(): bool
+    public function isRunning(Logger $logger = null): bool
     {
-        return $this->parallelProcess->isRunning();
+        $logger?->log('Stream updated at:'.$this->getUpdatedAtSnapshot()->format('Y-m-d H:i:s'));
+        return $this->parallelProcess->isRunning() && $this->streamIsAlive();
     }
 
     public function getOutput(): string
@@ -92,6 +97,7 @@ class StreamProcess
 
     public function start(callable $callback = null, array $env = []): void
     {
+        $this->runAt = new \DateTimeImmutable();
         $this->parallelProcess->start($callback, $env);
     }
 
@@ -117,5 +123,28 @@ class StreamProcess
         sleep($this->maxRetryDelay);
     }
 
+    private function streamIsAlive(): bool
+    {
+        if($this->runAt > new \DateTimeImmutable('-' . $this->maxStreamDelayInSec . ' seconds')) {
+            return true;
+        }
+        if($this->getUpdatedAtSnapshot() === null) {
+            return false;
+        }
+        if ($this->getUpdatedAtSnapshot() > new \DateTimeImmutable('-' . $this->maxStreamDelayInSec . ' seconds')) {
+            return true;
+        }
+        return false;
+    }
+
+    private function getUpdatedAtSnapshot(): ?\DateTimeInterface
+    {
+        clearstatcache(true,$this->getSnapshotPath());
+        $time = filemtime($this->getSnapshotPath());
+        if (!$time) {
+            return null;
+        }
+        return \DateTimeImmutable::createFromFormat('U', $time);
+    }
 
 }

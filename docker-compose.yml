@@ -11,8 +11,8 @@ services:
       - ./example-config.json:/app/config.json
       - stream:/app/resources
     environment:
-      - TYPE=file
-      - CONFIG=/app/config.json
+      - TYPE=remote_file
+      - CONFIG=${AGENT_DSN}streams/${API_KEY}
       - MESSENGER_TRANSPORT_DSN=${MESSENGER_TRANSPORT_DSN}
       - STREAM_HOST=stream-server
       - API_KEY=${API_KEY}
@@ -24,9 +24,6 @@ services:
     volumes:
       - ./docker/srs/rtsp.conf:/usr/local/srs/conf/rtsp.conf
       - stream:/usr/local/srs/objs/nginx/html/snapshot/
-    ports:
-      - 554:554
-      - 8080:8080
     entrypoint: [ "./objs/srs","-c","conf/rtsp.conf" ]
   redis:
     image: redis:latest

@@ -10,3 +10,10 @@ services:
       - ./vendor:/opt/cache/vendor/
       - ./composer.json:/app/composer.json
       - ./composer.lock:/app/composer.lock
+    environment:
+      - TYPE=file
+      - CONFIG=/app/config.json
+  stream-server:
+    ports:
+      - 554:554
+      - 8080:8080

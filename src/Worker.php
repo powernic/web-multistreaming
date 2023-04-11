@@ -101,10 +101,13 @@ final class Worker
 
     private function createReceivers(): array
     {
-        $connection = Connection::fromDsn($_ENV['MESSENGER_TRANSPORT_DSN']);
-        return [
-            new RedisReceiver($connection, new JsonMessageSerializer()),
-        ];
+        if(isset($_ENV['MESSENGER_TRANSPORT_DSN']) && !empty($_ENV['MESSENGER_TRANSPORT_DSN'])) {
+            $connection = Connection::fromDsn($_ENV['MESSENGER_TRANSPORT_DSN']);
+            return [
+                new RedisReceiver($connection, new JsonMessageSerializer()),
+            ];
+        }
+        return [];
     }
 
     private function createMessageBus(): MessageBus

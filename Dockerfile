@@ -43,8 +43,6 @@ COPY composer.json composer.lock ./
 COPY src/ ./src/
 COPY worker.php worker.php
 
-HEALTHCHECK CMD netstat -an | grep $FFSERVER_PORT > /dev/null; if [ 0 != $? ]; then exit 1; fi;
-
 FROM base as prod
 RUN set -eux; \
     if [ -f composer.json ]; then \
